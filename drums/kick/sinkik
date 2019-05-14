@@ -1,0 +1,14 @@
+//a sin tone with envelope on pitch.
+
+(
+SynthDef(\sinkick,{ |cfreq=350, camp=1|
+	var freq, osc, env, out;
+	freq = EnvGen.kr(Env([cfreq,30],[0.05],\exp));
+	osc = SinOsc.ar(freq,0,0.5);
+	env = EnvGen.kr(Env([0,1,0.1,0],[0.01,0.2,0.1],[1,2,1]),doneAction:2);
+	out = (osc * camp * env).dup;
+	Out.ar(0, out);
+}).add
+)
+
+Synth(\sinkick, [\cfreq, 400, \camp, 0.8])
