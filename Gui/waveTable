@@ -1,0 +1,102 @@
+/////////////////////////////////////////
+//              single wt              //
+/////////////////////////////////////////
+(
+//slider_gui
+var num =100, width=350, height=100;
+w = Window.new;
+m = MultiSliderView(w, Rect(0, 0, width, height));
+m.value_(Array.fill(num, {0.5}));
+m.elasticMode=1;
+m.thumbSize = 2;
+m.background_(Color(1,1,1,0.2));
+
+//zero line
+w.drawFunc = {
+	Pen.line(Point.new(0,height/2), Point.new(width,height/2));
+	Pen.stroke;
+};
+
+//button
+b = Buffer.alloc(s, 2048);
+p = Button(w, Rect(0, 120, 80, 30))
+        .states_([["update"]])
+        .action_({
+	      var cs, level, env;
+          cs = ControlSpec(-1, 1, \lin, 0.00001, 0);
+          level = cs.map(m.value);
+          level.add(level.at(0));
+          env = Env(level, 1, \sin).asSignal(1024).asWavetable;
+          b.loadCollection(env);
+        });
+
+w.front;
+)
+
+{Osc.ar(b, 440, mul:0.2)}.play
+
+
+
+/////////////////////////////////////////
+//               multi wt              //
+/////////////////////////////////////////
+
+//start VOsc
+(
+SynthDef(\wtSynth, { arg pos=0;
+	var env, sn;
+	sn = VOsc.ar(pos, mul:0.2);
+	Out.ar(0, sn);
+}).add;
+)
+x = Synth(\wtSynth);
+
+//gui
+(
+//make sliders
+var slide=3, dot=10, width=350, height=80;
+w = Window.new.front;
+m = Array.fill(slide,{arg i;
+	MultiSliderView(w, Rect(0, i*height, width, height))});
+m.collect({arg item;
+	item.value_(Array.fill(dot, {0.5}));
+	item.elasticMode=1;
+	item.thumbSize = 2;
+	item.background_(Color(1,1,1,0.2));
+});
+
+//draw zero lines
+w.drawFunc = {
+	slide.do({ arg i; var px = (i*height)+(height/2);
+		Pen.line(Point(0, px), Point(width,px));
+	    Pen.stroke;
+	})
+};
+
+//set slider value into buffers
+b = Buffer.allocConsecutive( slide, s, 2048, bufnum:0 );
+f = {
+	  b.do({ arg buf, i;
+	    var cs, level, env;
+        cs = ControlSpec(-1, 1, \lin, 0.00001, 0);
+		level = cs.map(m[i].value);
+        level.add(level.at(0));
+        env = Env(level, 1, \sin).asSignal(1024).asWavetable;
+        buf.loadCollection(env);
+	  })
+    };
+
+//make update button
+p = Button(w, Rect(0, height*slide+20, 80, 30))
+    .states_([["update"]])
+    .action_({ f.value });
+
+//make pos slider
+g = EZSlider( w,         // parent
+              Rect(0,height*slide,width,20), // bounds
+              " pos ",  // label
+	          ControlSpec(maxval:1.99),     // controlSpec
+	          { |ez| x.set(\pos, ez.value) } // action
+)
+
+)
