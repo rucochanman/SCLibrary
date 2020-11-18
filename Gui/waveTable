@@ -41,20 +41,11 @@ w.front;
 //               multi wt              //
 /////////////////////////////////////////
 
-//start VOsc
-(
-SynthDef(\wtSynth, { arg pos=0;
-	var env, sn;
-	sn = VOsc.ar(pos, mul:0.2);
-	Out.ar(0, sn);
-}).add;
-)
-x = Synth(\wtSynth);
 
-//gui
+//(1)make gui
 (
 //make sliders
-var slide=3, dot=10, width=350, height=80;
+var slide=3, dot=100, width=350, height=80;
 w = Window.new.front;
 m = Array.fill(slide,{arg i;
 	MultiSliderView(w, Rect(0, i*height, width, height))});
@@ -100,3 +91,14 @@ g = EZSlider( w,         // parent
 )
 
 )
+
+//(2)start VOsc
+(
+SynthDef(\wtSynth, { arg pos=0;
+	var env, sn;
+	sn = VOsc.ar(pos, mul:0.3);
+	Out.ar(0, sn);
+}).add;
+)
+x = Synth(\wtSynth);
+
