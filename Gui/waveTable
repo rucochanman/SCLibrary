@@ -102,3 +102,34 @@ SynthDef(\wtSynth, { arg pos=0;
 )
 x = Synth(\wtSynth);
 
+
+
+/////////////////////////////////////////
+//            harmonic wt              //
+/////////////////////////////////////////
+
+(
+//slider_gui
+var num=50, width=350, height=350;
+w = Window.new;
+m = MultiSliderView(w, Rect(0, 0, width, height));
+m.value_(Array.fill(num, {0.0}));
+m.elasticMode=1;
+m.thumbSize = 5;
+m.isFilled=true;
+
+//button
+b = Buffer.alloc(s, 2048);
+p = Button(w, Rect(0, 350, 80, 30))
+        .states_([["update"]])
+        .action_({
+	      var cs, level, wt;
+          cs = ControlSpec(step: 0.001);
+          level = cs.map(m.value);
+	      wt = Wavetable.sineFill(1024, [1]++level);
+          b.loadCollection(wt);
+        });
+w.front;
+)
+
+{Osc.ar(b, 440, mul:0.2)}.play
