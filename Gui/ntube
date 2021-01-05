@@ -1,0 +1,41 @@
+//create control bus
+~index = 20;
+c = Bus.control(s, ~index);
+
+//create slider gui
+(
+var dot=~index, width=350, height=100; //波形の点の数、sliderの縦横幅
+w = Window.new.front;
+m = MultiSliderView(w, Rect(0, 0, width, height));
+m.value_(Array.fill(dot, {0.0})); //中央値で初期化
+m.elasticMode = 1; //sliderの自動サイズ調整
+m.thumbSize = 10; //sliderの点のサイズ
+m.isFilled = true;
+//action
+m.action = {
+    var cs, level;
+	cs = ControlSpec(-1, 1, \lin, 0.00001, 0);
+    level = cs.map(m.value); //sliderから取得した値を-1～1で正規化
+	c.setn(level);
+};
+)
+
+(
+SynthDef(\tubeTest,{
+	var source, sn, delay, karray;
+	source = WhiteNoise.ar;
+	karray = In.kr( c, ~index );
+	delay = Array.fill(~index+1, 0.0001);
+    sn = NTube.ar( source, 0.98, `karray, `delay );
+	Out.ar(0, sn*0.01);
+}).add;
+)
+
+Synth(\tubeTest);
+
+karray= Array.fill(10,{|i| (areas[i]-areas[i+1])/(areas[i]+areas[i+1])});
+
+(5-1)/(5+1)
+(1-5)/(1+5)
+
+c.free
