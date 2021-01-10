@@ -1,0 +1,92 @@
+//(1)belaサーバー開始
+(
+   Server.default = s = Server("belaServer", NetAddr("192.168.7.2", 57110));
+   s.initTree;
+   s.startAliveThread;
+)
+
+//(2)control busの作成
+~ctrlBus = Bus.control(s, 1);
+
+
+//(3)led点灯
+(
+SynthDef(\led,{
+
+	var in, r, g, b;
+	in = AnalogIn.kr(7);
+  r = in.clip(0.0,0.5)*2;
+	g = (0.5 - in).abs*2;
+	b = 1 - ((in - 0.5)*2).clip(0,1);
+
+	//out to led
+	DigitalOut.ar( 8, LFPulse.ar( freq:(44100/32), width: r));
+	DigitalOut.ar( 7, LFPulse.ar( freq:(44100/32), width: b));
+	DigitalOut.ar( 9, LFPulse.ar( freq:(44100/32), width: g));
+
+	//out to control bus
+	Out.kr( ~ctrlBus, in );
+
+}).add;
+)
+
+
+//(4)sound test
+(
+SynthDef("soundtest", {
+	var sn, amp, out;
+	sn = SoundIn.ar(0);
+	amp = In.kr(~ctrlBus, 1);
+	out = sn * amp;
+	//Poll.kr(Impulse.kr(1),amp,\in);
+	Out.ar(0, sn.dup);
+}).add;
+)
+
+x = Synth(\led)
+y = Synth(\soundtest)
+x.free;
+y.free;
+
+//sin synth
+(
+SynthDef("sinsource", {
+	var sn, out;
+	var freq, hasFreq, amp;
+	sn = SoundIn.ar(0);
+	# freq, hasFreq = Pitch.kr(sn);
+	freq = Lag.kr(freq, 0.1);
+	amp = Amplitude.kr(sn, 0.05, 0.05);
+	out = Mix(SinOsc.ar([freq, freq*0.8, freq*1.5],0,amp * hasFreq * 0.7));
+	Out.ar(0, out.dup);
+}).add;
+)
+
+
+//distortion
+(
+SynthDef(\sound,{
+	var in,out;
+	in = SoundIn.ar(0);
+	out = Clip.ar(in*3,0,0.7);
+	out = out * In.kr(~ctrlBus, 1);
+	Out.ar(0, out);
+}).add;
+)
+
+//delay
+(
+SynthDef("sinsource", {
+	var sn, in, d1, d2, d3, d4,out;
+	sn = SoundIn.ar(0);
+	in = In.kr(~ctrlBus, 1);
+	d1 = AllpassL.ar(sn, 0.1, 0.1, 0.01, (in*0.6)+0.1);
+	d2 = AllpassL.ar(sn, 0.1, 0.2, 0.01, (in*0.7)+0.1);
+	d3 = AllpassL.ar(sn, 0.1, 0.3, 0.01, (in*0.8)+0.1);
+	d4 = AllpassL.ar(sn, 0.1, 0.4, 0.01, (in*0.9)+0.1);
+	out = sn + d1 + d2 + d3 + d4;
+	Out.ar(0, out.dup);
+}).add;
+)
+
+
