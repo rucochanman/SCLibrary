@@ -1,0 +1,38 @@
+(
+    var state, key, scale, bpm, matrix;
+    state = 7.rand;
+    key = "F5".notemidi;
+    scale = Scale.spanish;
+    bpm = 90;
+    
+    matrix = [
+    [ 0, 3, 1, 1, 1, 1, 3 ],
+    [ 3, 0, 3, 1, 1, 1, 1 ],
+    [ 1, 3, 0, 3, 1, 1, 1 ],
+    [ 1, 1, 3, 0, 3, 1, 1 ],
+    [ 1, 1, 1, 3, 0, 3, 1 ],
+    [ 1, 1, 1, 1, 3, 0, 3 ],
+    [ 3, 1, 1, 1, 1, 3, 0 ],
+    ]/10;
+
+    {
+        inf.do{
+        var midi = ( state.degreeToKey( scale ) + key );
+        var octave = [ 0, 12 ].wchoose( [ 0.8, 0.1 ] );
+        Synth( \saw, [ \midi, midi+octave ] );
+        ( midi+octave ).postln;
+        state = Array.series(7).wchoose( matrix[state] );
+        ( 60/bpm/3 ).wait;
+        };
+    }.fork;
+)
+
+(
+    SynthDef( \saw, { |midi=70|
+        var freq, env, sn;
+        freq = midi.midicps;
+        sn = Saw.ar( freq, 0.2 );
+        env = EnvGen.kr( Env.perc( 0.1, 1 ), doneAction:2 );
+        Out.ar( 0, sn*env );
+    }).add;
+)
