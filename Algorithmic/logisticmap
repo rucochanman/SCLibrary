@@ -1,0 +1,39 @@
+(
+var scale = Scale.romanianMinor;
+var key = "C6".notemidi;
+var state1 = 1.0.rand;
+var state2 = 1.0.rand;
+var r = 3.88;
+var logisticmap, note;
+
+logisticmap = { |previous=60| r*previous*(1.0-previous) };
+			
+{
+	inf.do{
+      state1 = logisticmap.(state1);
+      note = ( state1*14 ).round; 
+      note = ( note.degreeToKey( scale ) + key ).postln;
+	    Synth(\asynth,[\midi, note]);
+	
+      state2 = logisticmap.(state2);
+      note = ( state2*7 ).round; 
+      note = ( note.degreeToKey( scale ) + key-24 ).postln;
+	    Synth(\asynth,[\midi, note]);
+      0.25.wait;	
+      };
+}.fork;
+)
+
+(
+    SynthDef( \asynth, { |midi=40|
+        var freq, env, sn;
+        freq = midi.midicps;
+	      env = EnvGen.kr( Env.perc( 0.1, 1 ), doneAction:2 );
+	      sn = Klang.ar(`[
+            Array.series(30,1,2),
+            1/(Array.series(30)+1)+Array.rand(30,0,0.5),
+            nil],freq);
+	      sn = BPF.ar(sn, freq);
+        Out.ar( 0, sn*0.05*env );
+    }).add;
+)
