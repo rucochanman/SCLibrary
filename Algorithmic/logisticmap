@@ -1,3 +1,6 @@
+// Automatically generated melody by logisticmap
+// https://rucobloog.www2.jp/2021/02/01/%e3%83%a1%e3%83%ad%e3%83%87%e3%82%a3%e3%83%bc%e8%87%aa%e5%8b%95%e7%94%9f%e6%88%90-in-supercollider/
+
 (
 var scale = Scale.romanianMinor;
 var key = "C6".notemidi;
