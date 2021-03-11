@@ -1,0 +1,8 @@
+// wind like drone
+{ Resonz.ar( Dust.ar( 150, 60 ),  500, 0.002 ) }.play
+
+// wind like drone + overtones
+{ Mix.ar(Array.fill(10, { Resonz.ar( Dust.ar( 100, 50 ), 500 + 2000.0.rand, 0.001 )}) )}.play
+
+// with key + overtones
+{ Mix.ar(Array.fill( 10, { |i| Resonz.ar( Dust.ar( 100, 80 ), 500*( i+1 ), 0.001, 1/( i+1 ) )}) )}.play
