@@ -1,0 +1,18 @@
+//bass
+(
+SynthDef( \bad_bass, {
+	arg freq = 55, gain = 5.0, lpf = 300, attk = 5, rez= 0.05, rfreq = 8, amp = 0.5;
+	var saw, env1, env2, sn, out1, out2;
+	saw = Mix( Saw.ar( [freq, freq*2, freq*3], [gain, gain/3.0, gain/10.0] ) );
+	env1 = EnvGen.kr( Env.perc, doneAction: 2 );
+    env2 = EnvGen.kr( Env.perc( 0.001, 0.2 ) );
+	out1 = LPF.ar( saw, lpf, 0.4 ) * env1;
+	out2 = Mix( Resonz.ar( saw, [freq*0.94,  freq*2.85, freq*rfreq], rez, attk ) ) * env2;
+	Out.ar( 0, ( out1+out2 ).softclip*amp );
+}).add;
+)
+
+//soft & gain
+Synth( \bad_bass, [\freq, 62, \gain, 8, \lpf, 800, \attk, 2, \rez, 0.01, \rfreq, 2.5, \amp, 0.8] );
+//hard
+Synth( \bad_bass, [\freq, 62, \gain, 3, \lpf, 400, \attk, 4, \rez, 0.05, \rfreq, 10.5, \amp, 0.8] );
