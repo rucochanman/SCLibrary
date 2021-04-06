@@ -1,0 +1,7 @@
+({
+var sn, saw, out;
+	sn = WhiteNoise.ar(2) * LFNoise0.kr(100);
+	20.do{ sn = AllpassL.ar( sn, 0.05, 0.03, mul: 0.25, add: sn ) };
+	out = Resonz.ar( sn, LFNoise0.kr( 80, 120, 160 ), 0.02 );
+    out.softclip * 0.5;
+}.play)
