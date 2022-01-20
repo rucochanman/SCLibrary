@@ -1,0 +1,42 @@
+//★簡単に録音する
+(
+Routine({
+    s.record("保存するパス", duration: 1);
+    wait(0.02); //録音準備
+    //発音実行処理を書く
+}).play
+)
+
+//★doとcollectの違い
+//doは要素ごとにfuncを実行するのみ
+//collectは要素ごとにfuncを実行した結果、新しい配列を返す
+
+//★Bufferを再生する
+b = Buffer.read(s, "音源のパス");
+b.play;
+
+//★ファイルがある場所のパスを取得する
+~path = PathName(thisProcess.nowExecutingPath).parentPath;
+
+//★UGenのパラメータ情報を見る
+//()内にカーソルを合わせてctrl + ,
+
+//★音程をグリッサンドする
+(
+SynthDef(\gliss, { 
+	var sn;
+	sn = Saw.ar(\freq.kr(440).varlag(1.0, -4), 0.2);
+	Out.ar(0, sn.dup);
+}).add;
+)
+
+x = Synth(\gliss);
+x.set(\freq, 880);
+
+//★Guiで情報を見る
+s.makeGui
+
+//Guiのwindowが開いたあと、
+//l押下→レベルメーター
+//f押下→スペクトラム表示
+//p押下→ノードツリー表示
