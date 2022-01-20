@@ -1,0 +1,39 @@
+//MIDI初期設定
+MIDIClient.init;
+MIDIIn.connectAll;
+
+//gateありのシンセ
+(
+SynthDef(\test, {
+var sn, env;
+env = EnvGen.kr(
+		Env([0, 1, 0.5, 0], [0.01, 0.5], [1, -4], 2),
+		\gate.kr(1), doneAction: 2);
+sn = Saw.ar(440, mul: 0.2);
+sn = Pan2.ar(sn * env, 0);
+Out.ar(0, sn);
+}).add;
+)
+
+//midi設定
+(
+var on, off, ofset=41;
+//鍵盤数分の配列作成
+var notes = Array.newClear(32);
+
+//キーボードonしたとき
+on = MIDIFunc.noteOn( { |veloc, num|	
+	notes[num-ofset] = Synth(\test);
+} );
+
+//キーボードoffしたとき
+off = MIDIFunc.noteOff({ |veloc, num|
+	notes[num-ofset].set(\gate, 0);
+	notes[num-ofset] = nil;
+} );
+
+//リセット用
+q = { on.free; off.free; };
+)
+//MIDIfuncリセット
+q.value
