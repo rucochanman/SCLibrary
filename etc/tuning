@@ -1,0 +1,20 @@
+//tuning setting
+(
+var pitch, tuning, root;
+tuning = Tuning(#[0, 30, 224, 370, 400, 550, 588, 650, 792, 956, 996, 1186]/100);
+~myScale = Scale.chromatic(tuning);
+root = "C5".notemidi;
+pitch = 440;
+~refPitch = root.midicps * (pitch/440);
+)
+
+//play
+(
+Pbind(
+	\deg, Prand([0,2,4,5,7,9,11],inf),
+	\freq, Pfunc{ |n|
+		~myScale.degreeToFreq(n.deg, ~refPitch, 0);
+	},
+	\dur, 0.3,
+).play;
+)
