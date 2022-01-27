@@ -18,3 +18,35 @@ Pbind(
 	\dur, 0.3,
 ).play;
 )
+
+
+//和音を鳴らす
+(
+~myScale1 = Scale.chromatic(
+    Tuning(#[0, 30, 220, 330, 420, 520, 628, 702, 792, 926, 996, 1126]/100));
+)
+//コード進行　Bm7-5, Am7, Dm7, Em7-5
+(
+Pbind(
+\instrument, \chord,
+\scale, ~myScale1,
+\root, Pseq([
+    "B4".notemidi - 60,
+    "A5".notemidi - 60,
+    "D5".notemidi - 60,
+    "E5".notemidi - 60,
+   ],inf),
+\degree, Pseq([[0,3,6,10],[0,3,7,10],[0,3,7,10],[0,3,6,10]],inf),
+\dur, 0.6,
+).play
+)
+
+(
+SynthDef(\chord, {
+    var sn, freq, env;
+    env = Env([0,1,0.8,0],[0.01, 0.3, 0.5],[1, -4]).kr(2);
+    sn = Saw.ar(\freq.kr(440) +.t [0,0.5]) * \amp.kr(0.25);
+    sn = RLPF.ar(sn, 700);
+    Out.ar(0, sn * env);
+}).add;
+)
