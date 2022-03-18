@@ -1,0 +1,57 @@
+///座標ファイル読み込み
+(
+var path = PathName(thisProcess.nowExecutingPath).parentPath;
+var pathx = path ++  "/data/itemList_x.txt";
+var pathy = path ++  "/data/itemList_y.txt";
+var readx = TabFileReader.read(pathx, true, true);
+var ready = TabFileReader.read(pathy, true, true);
+y = [];
+x = [];
+ready.collect({ |item, i|
+	y = y.add(item[0].asFloat);
+});
+readx.collect({ |item, i|
+	x = x.add(item[0].asFloat);
+});
+x = x.normalize - 0.5;
+y = y.normalize - 0.5;
+)
+
+
+//busに座標データ送る
+~busx = Bus.audio(s, 1);
+~busy = Bus.audio(s, 1);
+
+(
+SynthDef(\bus, {
+	var freq = MouseX.kr(80,800);
+	var buf1, buf2, out1, out2;
+	var env1 = Env(x).asSignal(44100);
+	var env2 = Env(y).asSignal(44100);
+	buf1 = Buffer.alloc(s, 44100);
+	buf2 = Buffer.alloc(s, 44100);
+	buf1.loadCollection(env1);
+	buf2.loadCollection(env2);
+	out1 = BufRd.ar(1, buf1, (Phasor.ar(0, freq, 0, 44100)));
+	out2 = BufRd.ar(1, buf2, (Phasor.ar(0, freq, 0, 44100)));
+	Out.ar(~busx, out1);
+ 	Out.ar(~busy, out2);
+}).add;
+)
+
+//座標データを取得して回転を計算
+(
+SynthDef(\calc, {
+	var roll = MouseY.kr(0,5);
+	var sigx, sigy, outx, outy, phi;
+	phi = 2pi * Phasor.ar(Impulse.ar(roll), roll/SampleRate.ir);
+	sigx = In.ar(~busx, 1);
+	sigy = In.ar(~busy, 1);
+	outx =  (sigx*cos(phi)) + (sigy*(-1)*sin(phi));
+	outy =  (sigx*sin(phi)) + (sigy*cos(phi));
+	Out.ar(0, [outx, outy]);
+}).add;
+)
+
+a = Synth(\bus);
+b = Synth.after(a, \calc);
