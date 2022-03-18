@@ -1,0 +1,42 @@
+(
+SynthDef(\polySynth, {
+	arg n = 4, freq = 20, teeth = 0, fold = 1, roll = 0;
+	var p, x, y, phi, theta_zero, theta, rotate;
+
+	theta_zero = pi / n;
+	phi = 2pi * Phasor.ar(Impulse.ar(freq), freq/SampleRate.ir);
+	rotate = 2pi * Phasor.ar(Impulse.ar(roll), roll/SampleRate.ir);
+
+	t = (pi * (n - 2)) / (2 * n) * teeth;
+	theta = 2 * theta_zero * ((phi * n / 2pi) % 1.0);
+	p = cos(theta_zero + t) / cos(theta - theta_zero + t);
+	x = p * cos(phi + rotate);
+	y = p * sin(phi + rotate);
+	x = Fold.ar(fold * x, -1, 1);
+	y = Fold.ar(fold * y, -1, 1);
+
+	Out.ar(0, [x, y]*0.5);
+}).add;
+)
+
+// lots of sliders on on view
+(
+var params, control;
+w=Window.new.front;
+w.view.decorator=FlowLayout(w.view.bounds);
+w.view.decorator.gap=2@4;
+
+a = Synth(\polySynth);
+
+params = ["n", "freq", "teeth", "fold", "roll"];
+control = [ControlSpec(2.1,50), ControlSpec(1,500), ControlSpec(0, 1),ControlSpec(1, 10), ControlSpec(-10, 10)];
+
+params.collect{ |item, i|
+	EZSlider(w, 392@25, item, control[i], layout:\horz)
+    .setColors(Color.black,Color.white)
+    .font_(Font("Helvetica",15))
+	.action_({ |v| a.set(item, v.value)});
+};
+)
+
+
