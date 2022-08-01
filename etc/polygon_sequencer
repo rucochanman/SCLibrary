@@ -1,0 +1,111 @@
+int bpm = 120;
+int divide = 32;
+int num = 4;
+float padding;
+int count = 0;
+PVector[] center = new PVector[num];
+PVector[][] points = new PVector[num][divide];
+float[][] radius = new float[num][divide];
+
+//osc setting
+import oscP5.*;
+import netP5.*;
+String sendIP = "127.0.0.1";
+int sendPort = 57120;
+int receivePort = 12345;
+OscP5 oscP5;
+NetAddress myRemoteLocation;
+
+//timer setting
+import java.util.TimerTask;
+import java.util.Timer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+Timer timer = null;
+
+void setup() {
+  size(800, 200);
+  background(255);
+  frameRate(60);
+  padding = height/2;
+ 
+  //start oscP5
+  oscP5 = new OscP5(this,receivePort);
+  myRemoteLocation = new NetAddress(sendIP,sendPort);
+
+  //set default radius
+  for (int i=0; i<num; i++) {
+  center[i] = new PVector(i*2*padding+padding, padding);  
+    for (int j=0; j<divide; j++) {
+      radius[i][j] = padding/2;
+      float x = radius[i][j]*cos(j*TWO_PI/divide);
+      float y = radius[i][j]*-sin(j*TWO_PI/divide);
+      points[i][j] = new PVector(x, y);
+    }
+  }  
+ 
+  //timer set
+  timer = new Timer();
+  OtherRun otherRun = new OtherRun();
+  long dur = 60 * 1000 / bpm / 8;
+  timer.scheduleAtFixedRate( otherRun, 0, dur );
+ 
+}
+
+class OtherRun extends TimerTask {
+  @Override
+  public void run() {
+    count = (count+1) % divide;
+   
+    //send osc message
+    OscMessage myMessage = new OscMessage("/ps");
+    myMessage.add(count);
+    for(int i=0; i<num; i++){
+      myMessage.add(radius[i][count]);
+    }
+    oscP5.send(myMessage, myRemoteLocation);
+  }
+}
+
+void draw() {
+
+  if(mousePressed) {
+    //cal points for each segment
+    for(int i=0; i<num; i++){
+      if(center[i].x-padding<mouseX && mouseX<center[i].x+padding){
+        float y = -1 * (mouseY-center[i].y);
+        float x = mouseX-center[i].x;
+        float rad = atan2(y, x)>0 ? atan2(y, x) : TWO_PI+atan2(y, x);
+        //set points
+        for (int j=0; j<divide; j++) {
+          if (rad > j*TWO_PI/divide && rad < (j+1)*TWO_PI/divide) {
+            radius[i][j] = sqrt(pow(abs(x), 2)+pow(abs(y), 2));
+            radius[i][j] = min(width/2, radius[i][j]); //clip radius
+            float px = radius[i][j]*cos(j*TWO_PI/divide);
+            float py = radius[i][j]*-sin(j*TWO_PI/divide);
+            points[i][j] = new PVector(px, py);
+          }
+        }
+      }
+    }
+  }
+
+  //draw lines
+  background(255);
+  for(int i=0; i<num; i++){
+    pushMatrix();
+    translate(center[i].x, center[i].y);
+    //draw circle
+    for (int j=0; j<divide; j++) {
+      line(points[i][j].x, points[i][j].y,
+      points[i][(j+1)%divide].x, points[i][(j+1)%divide].y);
+    }
+    //draw pointer
+    line(0, 0,
+    radius[i][count] * cos(-count*TWO_PI/divide),
+    radius[i][count] * sin(-count*TWO_PI/divide)
+    );
+    popMatrix();
+  }
+
+}
