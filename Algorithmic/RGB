@@ -1,0 +1,157 @@
+//画像ファイルをソースにしてウェーブテーブルシンセを作成する
+
+
+//任意のpngファイル（画像データ）をAudacityでwavデータに変換
+//bufferに読み込み
+(
+var path = "データのパス";
+~buf = Buffer.read(s, path);
+)
+
+//配列にbufferのデータを分けて入れる
+(
+a = [];
+500.do({ |i|
+~buf.getn(i, (i/5).round+5, {|msg| a = a.add(msg)})
+})
+)
+
+//ウェーブテーブル用のバッファを確保
+b = Buffer.allocConsecutive(a.size, s, 2048);
+(
+500.do({|i|
+	var env, sig, wt;
+	env = Env(a[i], 1, \sin); //データをenvに変換
+	sig = env.asSignal(1024); //Signalに変換
+	wt = sig.asWavetable; //wavetableフォーマットに変換
+	b[i].loadCollection(wt); //Bufferに格納
+})
+)
+
+
+//シンセ作成
+c = Bus.audio(s, 1);
+d = Bus.audio(s, 1);
+(
+SynthDef(\wave, {
+	var son, freq, index, env;
+	index = EnvGen.kr(Env([\head.kr(10),\last.kr(20)],[\cdur.kr(0.2)],[-4]));
+	son = VOsc.ar(index, \freq.kr(440), mul: \amp.kr(0.3));
+	env = Env([0,1,0],[\attk.kr(0.01),\rel.kr(1)],[1,-4]).kr(2);
+	son = son * env;
+	Out.ar(\out.kr(c), son);
+}).add;
+)
+
+(
+SynthDef(\filter1,{
+	var in, son, out;
+	in = In.ar(c, 1);
+	son = LPF.ar(in, FSinOsc.kr(15, 0, \l1.kr(1000), FSinOsc.kr(2, 0, \l2.kr(1500), \l3.kr(3000))));
+	son = (in * \dry.kr(0.5)) + (son * \wet.kr(0.5));
+	Out.ar(0, son.dup * \amp.kr(0.8));
+}).add;
+)
+
+(
+SynthDef(\filter2,{
+	var in, e, sn, out;
+	in = In.ar(d, 1);
+	e = DelayN.ar(in, 0.048);
+	e = Mix.ar(Array.fill(7,{ CombL.ar(e, 0.1, LFNoise1.kr(0.1.rand, 0.04, 0.05), 5) }));
+	sn = in + e.clip(-0.1, 0.1);
+	sn = LPF.ar(sn, FSinOsc.kr(10, 0, 1000, FSinOsc.kr(2, 0, 1500, 3000)));
+	Out.ar(0, sn.dup * \amp.kr(0.7));
+}).add;
+)
+
+
+//曲の設計
+//main riff
+t = 0.15;
+(
+~main = Pbind(
+	\instrument, \wave,
+	\freq, Pseq([Pseq([55, 59, 62, 69, 59, 62, 69,
+		56, 60, 63, 67, 60, 63, 67].midicps, 4),
+		Pseq([ 56, 60, 63, 68, 60, 63, 68 ].midicps, 1)], inf),
+	\rel, Pseq([0.1, 2, 0.1, 1, 1, 2, 0.1], inf),
+	\cdur, Pseq([2, 1, 0.1, 1, 0.1, 0.1, 2],inf),
+	\head, 50,
+	\last, Pseq([5, 10, 20, 30], inf),
+	\dur, Pseq([t,t,t,t,t/2,t/2,t],inf),
+	\out, d,
+)
+)
+
+//drum
+(
+~drum = Pbind(
+	\instrument, \wave,
+	\freq, Pseq([10, 10, 150, 10, 50], inf),
+	\attk, Pseq([0.1, 0.01, 0.01, 0.01, 0.01], inf),
+    \rel, Pseq([1, 1, 0.1, 1, 1], inf),
+	\cdur, Pseq([0.5, 0.1, 0.1, 0.1, 0.5], inf),
+	\head, Pseq([100, 50, 400, 50, 20], inf),
+	\last, Pseq([5, 5, 300, 5, 5], inf),
+	\dur, Pseq([t*2,t*2,t,t*2,t*2], inf),
+	\out, d,
+)
+)
+
+//riff
+(
+~riff = Pbind(
+	\instrument, \wave,
+	\freq, Pseq([Pseq([\],4), Pseq([[67,62]].midicps,8)], inf),
+	\cdur, 2,
+	\head, 350,
+	\last, 100,
+	\rel, 1,
+	\attk, 0.05,
+	\dur, t,
+	\out, c
+)
+)
+
+//lead
+(
+~lead = Pbind(
+	\instrument, \wave,
+	\freq, Pseq([\,\,\,77, 79, 84, 86,
+		\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,
+		84,\,84,\,\,\,83,\,83,\,\,\,79,\,
+		74,\,\,\,\,\,\,\,\,\,\,\,\,
+		77, 79, 84, 86,].midicps, inf),
+	\rel, 2.5,
+	\head, Pseq([50, 10, 100, 300], inf),
+	\last, Pseq([100, 5, 5, 5],inf),
+    \cdur, Pseq([2, 1, 5, 1, 5], inf),
+	\dur, t,
+	\out, d,
+)
+)
+
+
+//bass
+(
+~bass = Pbind(
+	\instrument, \wave,
+	\freq, Pseq([43,36,34,32].midicps, inf),
+	\rel, 10,
+	\attk, 0.5,
+	\head, 20,
+	\last, 5,
+    \cdur, 10,
+	\dur, Pseq([Pseq([t*15],3),Pseq([t*10],1)], inf),
+	\out, c,
+	\amp, 0.3
+)
+)
+
+//メインフレーズの演奏
+(
+Synth(\filter1);
+Synth(\filter2);
+Ppar([~main, ~drum], inf).play
+)
