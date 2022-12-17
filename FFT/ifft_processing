@@ -1,0 +1,25 @@
+PrintWriter file;
+PImage img;
+
+void setup() {
+  size(369,512);
+  noLoop();
+  img = loadImage("image.png");
+  img.loadPixels();
+  file = createWriter("pixels.csv");
+  
+  for(int i=0; i<img.width; i++){
+    for(int j=0; j<img.height; j++){
+      float p = int(img.pixels[img.width*(511-j)+i]) & int(pow(2,24)-1);
+      p = p / (pow(2,24)-1);
+      file.print(p);
+      file.print(",");
+    }
+    file.println();
+  }
+  
+  file.flush();
+  file.close();
+  exit();
+}
+
