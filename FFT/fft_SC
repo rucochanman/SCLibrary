@@ -1,19 +1,18 @@
-s.options.memSize
 s.options.memSize = 8192*4;
-s.reboot
+s.boot;
+
+~path = PathName(thisProcess.nowExecutingPath).parentPath +/+ "sample/**.wav";
+w = Buffer.read(s, ~path);
 
 (
 var buffersize = 1024;
-w = Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01.wav");
 b = Buffer.alloc(s, buffersize, 1);
 c = Bus.control(s, buffersize);
-~fftArray = [];
 
-SynthDef(\avTrk2, {
-  var in, chain, stream, windowStarts, out;
-  in = PlayBuf.ar(
-		1, w, BufRateScale.kr(w), loop:0, doneAction:2);
-    chain = FFT(b, in);
+SynthDef(\fft, {
+var in, chain, stream, windowStarts, out;
+	in = PlayBuf.ar(1, w, BufRateScale.kr(w), loop:0, doneAction:2);
+	chain = FFT(b, in);
 	stream = UnpackFFT(
 		chain, buffersize, frombin:0, tobin:buffersize/2);
 	windowStarts = chain > -1;
@@ -22,65 +21,79 @@ SynthDef(\avTrk2, {
 	SendTrig.kr(windowStarts,0,1);
 }).add;
 
-// register to receive this message
-o = OSCFunc({ arg msg, time;
+~fftArray = [];
+OSCdef(\send, { arg msg, time;
 	~fftArray = ~fftArray.add(c.getnSynchronous(buffersize));
 },'/tr', s.addr);
 )
-o.free
 
-Synth(\avTrk2);
-~fftArray.size
+Synth(\fft);
+~fftArray.size;
+
+//clear
+(
+Oscdef(\send).disable;
+w.free;
+b.free;
+c.free;
+)
 
 //~fft array を並び替え
 (
-var temp = [];
-~fftArray.size.do({ |i|
-	temp = temp.add(~fftArray[i].clump(2).flop);
-});
 
-~fftArray.size.do({ |i|
+ var temp = [];
+ y = []; x = [];
+ ~fftArray.size.do({ |i|
+	temp = temp.add(~fftArray[i].clump(2).flop);
+ });
+
+ ~fftArray.size.do({ |i|
 	y = y.add(temp[i][0]);
 	x = x.add(temp[i][1]);
-});
+ });
 )
 
-//scaling
-z = y.flatten
-z = z / z.maxItem
-z = z.clump(512)
 
 //send osc
 n = NetAddr.new("127.0.0.1", 10000);
 (
 Task({
-  y.size.do({ |i|
-  n.sendMsg("/pattern", *(z[i]));
-  0.1.wait;
-  })
+	y.size.do({ |i|
+		0.3.wait;
+		n.sendMsg("/pattern", *(y[i]/y[i].maxItem));
+
+	})
 }).play
 )
 
+
 //read csv
-t = [];
 (
-t = CSVFileReader.read("/path/***.csv", true, true);
-t = t.asFloat;
-t = t * z.maxItem;
+~pix = [];
+~pix = CSVFileReader.read(PathName(thisProcess.nowExecutingPath).parentPath +/+ "processing/ifft/pixels.csv", true, true);
+~pix = ~pix.asFloat;
+
 )
+//rescale
+(
+~pix.size.do({ |i|
+	~pix[i] = ~pix[i] * y[i].maxItem
+})
+)
+
 
 //ifft
 (
 SynthDef(\ifft, {
-  var magbuf, phabuf, chain, sig, windowStarts, mags, phases;
-  chain = FFT(LocalBuf(1024), FSinOsc.ar);
+    var magbuf, phabuf, chain, sig, windowStarts, mags, phases;
+    chain = FFT(LocalBuf(1024), FSinOsc.ar);
 	windowStarts = chain > -1;
-	mags = Demand.kr(windowStarts, 0, Dseq(t,inf));
+	mags = Demand.kr(windowStarts, 0, Dseq(~pix,inf));
 	phases = Demand.kr(windowStarts, 0, Dseq(x,inf));
-  chain = PackFFT(chain, 512, [mags, phases].flop.flatten, 0, 512, 1);
-  sig = IFFT(chain);
-	Out.ar(0, sig.dup);
+    chain = PackFFT(chain, 512, [mags, phases].flop.flatten, 0, 512, 1);
+	sig = IFFT(chain) * \amp.kr(1);
+	Out.ar(0, sig.clip(-0.8, 0.8).dup);
 }).add;
 )
 
-Synth(\ifft);
+Synth(\ifft, [\amp, 1]);
