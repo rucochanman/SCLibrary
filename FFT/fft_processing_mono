@@ -1,0 +1,46 @@
+//monotone version
+
+import oscP5.*;
+import netP5.*;
+OscP5 oscP5;
+NetAddress myRemoteLocation;
+float[] y;
+int count = 0;
+int z_count = 0;
+
+void setup() {
+  size(512,512);
+  background(255);
+  frameRate(30);
+  noStroke();
+  noSmooth();
+  OscProperties op = new OscProperties();
+  op.setListeningPort(10000);
+  op.setDatagramSize(5000);
+  oscP5 = new OscP5(this, op);
+  myRemoteLocation = new NetAddress("127.0.0.1", 57120);
+  oscP5.plug(this,"getData","/pattern");
+}
+
+public void getData(float[] fromy) {
+  y = fromy;
+  count += 1;
+}
+
+void draw() {
+  if(z_count != count){
+    for(int i=0; i<512; i++){
+      float col = 255.0 - (y[i]*255);
+      stroke(col);
+      point(count-1, 511-i);     
+    }
+    z_count = count;
+  }
+}
+
+void keyPressed(){
+  if(keyCode == ENTER)
+  {
+    save("image.png");
+  }
+}
