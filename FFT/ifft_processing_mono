@@ -1,0 +1,26 @@
+//monotone version
+
+PrintWriter file;
+PImage img;
+
+void setup() {
+  size(369,512);
+  noLoop();
+  img = loadImage("image.png");
+  img.loadPixels();
+  file = createWriter("pixels.csv");
+  
+  for(int i=0; i<img.width; i++){
+    for(int j=0; j<img.height; j++){
+      color p = img.pixels[img.width*(511 - j) + i];
+      float data = (255 - red(p)) / 255;
+      file.print(data);
+      file.print(",");
+    }
+    file.println();
+  }
+  
+  file.flush();
+  file.close();
+  exit();
+}
