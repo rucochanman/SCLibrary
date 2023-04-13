@@ -18,6 +18,14 @@ b.play;
 //★ファイルがある場所のパスを取得する
 ~path = PathName(thisProcess.nowExecutingPath).parentPath;
 
+//★フォルダ内のファイルをリスト化する
+(
+var myPaths, root;
+root = PathName(thisProcess.nowExecutingPath).parentPath ++ "samples/";
+myPaths = PathName(root);
+~pathList = myPaths.entries;
+)
+
 //★UGenのパラメータ情報を見る
 //()内にカーソルを合わせてctrl + ,
 
