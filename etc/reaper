@@ -1,1 +1,42 @@
-etc
+//midi_reaper連携
+MIDIClient.init;
+MIDIIn.connectAll;
+
+//アウトプットの変更
+//Server.default.options.outDevice = "Background Music";
+
+//独自Tuning
+(
+~myScale = Scale.chromatic(
+    Tuning(#[0, 180, 220, 350, 400, 520, 658, 720, 850, 920, 1150, 1100]/100));
+)
+
+//midi受信
+(
+~on.free;
+~on = MIDIFunc.noteOn({ |vel, num|
+	Synth(\melo, [\freq,
+		~myScale.degreeToFreq(num-48, "C5".notemidi.midicps, 0)
+	]);
+});
+)
+
+//シンセ本体
+(
+SynthDef(\melo, {
+    var sn, freq, env;
+    env = Env([0,1,0],[0.01, 0.1]).kr(2);
+    sn = Saw.ar(\freq.kr(440), 0.1);
+    Out.ar(0, sn * env);
+}).add;
+)
+
+//toscaからのosc受信
+thisProcess.openUDPPort(4002);
+(
+OSCdef(\param1, { arg msg;
+	msg.postln;
+},'1/azim');
+)
+
+
