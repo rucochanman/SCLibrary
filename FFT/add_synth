@@ -1,7 +1,7 @@
 s.options.memSize = 8192*4;
 s.reboot;
 
-p = "/Users/ruco/Desktop/sc_test/waveTable/wav/ain.wav";
+p = "/***.wav";
 w = Buffer.read(s, p, 14950, 2048*16);
 w.play
 w.free
