@@ -1,0 +1,54 @@
+import oscP5.*;
+import netP5.*;
+OscP5 oscP5;
+NetAddress myRemoteLocation;
+float[] bins = new float[512];
+int counter = 0;
+
+void setup(){
+  size(512,512);
+  background(255);
+  frameRate(30);
+  noStroke();
+  noSmooth();
+  OscProperties op = new OscProperties();
+  op.setListeningPort(10000);
+  op.setDatagramSize(5000);
+  oscP5 = new OscP5(this, op);
+  myRemoteLocation = new NetAddress("127.0.0.1", 57120);
+  oscP5.plug(this,"getData","/pattern");
+}
+
+public void getData() {
+  counter = (counter + 1)%512;
+  
+  //get color
+  loadPixels();
+  
+  for(int j=0; j<height; j++){
+    color p = pixels[width*(height-1-j)+counter];
+    float data = (255 - red(p))/255;
+    bins[j] = data;
+  };
+  
+  
+  //osc send
+  OscMessage msg = new OscMessage("/param");
+  msg.add(bins);
+  oscP5.send(msg, myRemoteLocation);
+  //println("get");
+}
+
+void draw() {
+    if (mousePressed) {
+        stroke(color(0));
+        line(mouseX, mouseY, pmouseX, pmouseY);
+    }
+}
+
+void keyPressed(){
+  if(keyCode == ENTER)
+  {
+    //save("image.png");
+  }
+}
