@@ -1,0 +1,75 @@
+s.options.memSize = 8192*4;
+s.reboot;
+
+//send osc
+n = NetAddr.new("127.0.0.1", 10000);
+n.sendMsg("/pattern")
+
+
+(
+Task({
+y.size.do({ |i|
+0.5.wait;
+n.sendMsg("/pattern", *(y[i]/y.flatten.maxItem));
+
+})
+}).play
+)
+
+
+//read csv
+(
+~pix = [];
+~pix = CSVFileReader.read("/Users/ruco/Desktop/fft_interp/processing/ifft/pixels.csv", true, true);
+~pix = ~pix.asFloat;
+)
+//rescale
+(
+~pix.size.do({ |i|
+~pix[i] = ~pix[i] * y.flatten.maxItem
+})
+)
+
+
+
+
+
+
+
+
+
+(
+SynthDef(\ifft, {
+	var mags = \mag.kr(1!512);
+	//var phases = \phase.kr(1!512);
+    var magbuf, phabuf, chain, sig, windowStarts;
+    chain = FFT(LocalBuf(1024), FSinOsc.ar);
+	windowStarts = chain > -1;
+	chain = PackFFT(chain, 512, [mags, 0].flop.flatten, 0, 512, 1);
+	sig = IFFT(chain) * \amp.kr(1);
+	Out.ar(0, sig.clip(-0.8, 0.8).dup);
+	SendTrig.kr(windowStarts,0,1);
+}).add;
+)
+h = Synth(\ifft, [\amp, 0.1]);
+h.set(\amp, 8);
+
+(
+OSCdef(\send,{ arg msg;
+	n.sendMsg("/pattern");
+	//msg.postln;
+},'/tr', s.addr);
+)
+OSCdef(\send).enable
+
+(
+OSCdef(\get, { arg msg;
+	//~tr_num = (~tr_num + 1)%512;
+	h.set(\mag, msg[1..513]);
+	//msg[1..513].postln;
+},'/param');
+)
+n.sendMsg("/pattern");
+a = (0..10)
+a[1..9]
+
