@@ -26,6 +26,14 @@ myPaths = PathName(root);
 ~pathList = myPaths.entries;
 )
 
+//★リスト化したファイルをバッファに読み込む
+(
+~voices = [];
+~pathList.do({|item, i|
+	~voices = ~voices.add(Buffer.read(s, item.fullPath));
+});
+)
+
 //★UGenのパラメータ情報を見る
 //()内にカーソルを合わせてctrl + ,
 
