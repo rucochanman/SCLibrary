@@ -1,10 +1,10 @@
 //input settings
-Server.default.options.outDevice_("Windows DirectSound : スピーカー (Pebble V3)");
-Server.default.options.inDevice_("Windows DirectSound : CABLE Output (VB-Audio Virtual Cable)");
+Server.default.options.outDevice_("***");
+Server.default.options.inDevice_("***");
 
 //read wav
 p = PathName(thisProcess.nowExecutingPath).parentPath;
-p = p ++ "wav/DnB2.wav";
+p = p ++ "wav/***.wav";
 b = Buffer.readChannel(s, p, channels:0);
 Buffer.freeAll
 b.play
