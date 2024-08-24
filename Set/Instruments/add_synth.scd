@@ -1,9 +1,19 @@
-//音源読み込み
-p = "/***.wav";
-w = Buffer.read(s, p, 0, 2048*16);
+//////////音源読み込み
+p = PathName(thisProcess.nowExecutingPath).parentPath ++ "wav/";
+p = p ++ "piano_02.wav";
+w = Buffer.readChannel(s, p, numFrames: 44100, channels:0);
+w.play
+w.free
 
-//fftする
+//////////fftする
 ~buffersize = 1024;
+(
+OSCdef(\send).disable;
+OSCdef(\send).enable;
+b.free;
+c.free;
+)
+
 (
 b = Buffer.alloc(s, ~buffersize, 1);
 c = Bus.control(s, ~buffersize);
@@ -24,12 +34,10 @@ OSCdef(\send, { arg msg, time;
 	~fftArray = ~fftArray.add(c.getnSynchronous(~buffersize));
 },'/tr', s.addr);
 )
-
 Synth(\fft);
 ~fftArray.size
 
-//////////////
-//~fft array を並び替え
+//////////~fft array を並び替え
 (
  var temp = [];
  y = []; x = [];
@@ -43,46 +51,33 @@ Synth(\fft);
  });
 )
 
-//////////////
-
-//dictionaryに登録
+//////////dictionaryに登録
 d = Dictionary();
-d.put(\a_y, y);
-d.put(\a_x, x);
+d.put(\piano_y, y);
+d.put(\piano_x, x);
 
-//bufferに倍音を詰める
-g.free;
-g = Buffer.alloc(s, ~buffersize/2, 1);
-g.sine3((0..(~buffersize/2))/4, d.at(\a_y)[10], d.at(\a_x)[10]);
+//////////bufferに倍音を詰める
+g.size.do{ |i| g[i].free }
+g = Buffer.allocConsecutive(y.size, s, ~buffersize*2, bufnum:100);
+(
+g.size.do({ |i|
+	var freq = (0..~buffersize);
+	g[i].sine3(freq, d[\piano_y][i], d[\piano_x][i], asWavetable:false);
+});
+)
 
-//鳴らす
+//////////鳴らす
 (
 SynthDef(\addSynth, {
-	var sn, vib;
-	vib = FSinOsc.ar(\vFreq.kr(4), 0, \vAmp.kr(2));
-	sn = Osc.ar(g, \freq.kr(440)+vib, 0, \amp.kr(0.5));
-    sn = OnePole.ar(sn, 0.5);
-	Out.ar(0, sn);
+	var sn, bFreq;
+	bFreq = (SampleRate.ir/2) / (~buffersize/2);
+	//bFreq = \freq.kr(80);
+	sn = VOsc.ar(
+		bufpos: Line.ar(g[0].bufnum, g[g.size-1].bufnum, 4, doneAction:2),
+		freq: bFreq);
+    //sn = OnePole.ar(sn, 0.5);
+	Out.ar(0, sn * \amp.kr(0.2));
 }).add;
 )
 
-x = Synth(\addSynth);
-
-//oscでパラメータ受信
-(
-OSCdef(\param1, { arg msg;
-	var index = msg[1].round.asInteger;
-	y = d.at(\a_y)[index];
-        x = d.at(\a_x)[index];
-},'/2/a');
-)
-g.sine3((0..(~buffersize/2))/4, y, x);
-
-//消去する時
-//clear
-(
-OSCdef(\send).disable;
-OSCdef(\send).enable;
-b.free;
-c.free;
-)
+Synth(\addSynth, [\freq, 48]);
