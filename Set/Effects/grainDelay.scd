@@ -1,7 +1,7 @@
 ~recBuf = Buffer.alloc(s, 44100 * 1.0, 1);
 (
 SynthDef(\grainDelay, {
-	var source, rec, grains, wet=0.5, dry=0.5, delayn=4;
+	var source, rec, grains, wet, dry, delayn=4;
 	var buf = \buf.kr(0);
 	var trig = [\trig1.kr(1), \trig2.kr(2), \trig3.kr(3)];
 	var dur = [\dur1.kr(0.05), \dur2.kr(0.07), \dur3.kr(0.06)];
@@ -21,8 +21,9 @@ SynthDef(\grainDelay, {
 	});
 	grains = grains.sum;
 
+	//mix
 	dry = \dry.kr(0.5);
-	wet = \wet.kr(0.5);
+	wet = 1.0 - dry;
 
 	Out.ar(0, ( (source*dry) + (grains*wet) ).dup);
 }).add;
