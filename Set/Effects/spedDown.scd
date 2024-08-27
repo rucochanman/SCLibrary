@@ -10,7 +10,7 @@ b.free
 b.loadToFloatArray(action: { arg array; a = array; { a.plot }.defer; "done".postln });
 
 //wave table settings
-~wavesize = 2000;
+~wavesize = 1000;
 ~buffersize = 2048; //should bigger than wavesize
 k.size.do({|i| k[i].free});
 k = Buffer.allocConsecutive(a.clump(~wavesize).size, s, ~buffersize, bufnum: 100);
