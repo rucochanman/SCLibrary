@@ -8,7 +8,7 @@
 )
 
 //////////load seqMain//////////
-load(PathName(thisProcess.nowExecutingPath).parentPath ++ "scSeq.scd");
+load(PathName(thisProcess.nowExecutingPath).parentPath ++ "scSequencer.scd");
 
 //////////make new parameter//////////
 //title, type(\t or \s), array ←mandatory!!
