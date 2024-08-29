@@ -1,13 +1,16 @@
-//settings (execute this first)
+//////////global setting//////////
 (
 ~bpm = 120;
 ~step = 32;
 ~block = 4;
 ~blockSize = ~step*~block;
-~counter = 0; //global counter
+~counter = 0;
 )
 
-//////////set parameter//////////
+//////////load seqMain//////////
+load(PathName(thisProcess.nowExecutingPath).parentPath ++ "scSeq.scd");
+
+//////////make new parameter//////////
 //title, type(\t or \s), array ←mandatory!!
 //min, max, div
 (
@@ -15,14 +18,16 @@
 	\title->"degree",
 	\type->\s,
 	\array->Array.fill(~blockSize,{0}),
+	\buf->Buffer.alloc(s, ~blockSize),	
 	\div->5,
 	\min->0,
-	\max->6
+	\max->6,
 ]);
 ~drum = Dictionary.with(*[
     \title->"trig",
 	\type->\t,
 	\array->Array.fill(~blockSize,{0}),
+	\buf->Buffer.alloc(s, ~blockSize)	
 ]);
 )
 ~seqArg = [~deg, ~drum];
@@ -52,6 +57,9 @@ AppClock.play(~routine);
 	~deg1Buf.setn(0, ~deg[\array]);
 };
 )
+
+~deg[\buf].setn(0, ~deg[\array]);
+~deg[\buf].plot
 
 //////////synthDefs//////////
 
@@ -144,6 +152,3 @@ SynthDef(\wt, {
 )
 
 Synth(\wt, [\buf, ~wt1Buf.bufnum])
-
-
-
