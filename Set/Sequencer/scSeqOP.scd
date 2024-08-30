@@ -1,48 +1,58 @@
-//////////global setting//////////
+//////////boot server//////////
+s.boot;
+
+//////////load seqMain//////////
+(
+//absolute path to scSequecer.scd
+var path = "***/SCTools/SCLibrary/Set/Sequencer/scSeqencer.scd";
+load(path);
+)
+
+//////////song setting//////////
 (
 ~bpm = 120;
 ~step = 32;
-~block = 4;
-~blockSize = ~step*~block;
+~bar = 4;
+~blockSize = ~step*~bar;
 ~counter = 0;
 )
 
-//////////load seqMain//////////
-load(PathName(thisProcess.nowExecutingPath).parentPath ++ "scSequencer.scd");
-
 //////////make new parameter//////////
+~block = Dictionary();
+
+//template
 //title, type(\t or \s), array ←mandatory!!
 //min, max, div
-(
-~deg = Dictionary.with(*[
-	\title->"degree",
-	\type->\s,
-	\array->Array.fill(~blockSize,{0}),
-	\buf->Buffer.alloc(s, ~blockSize),	
-	\div->5,
-	\min->0,
-	\max->6,
-]);
-~drum = Dictionary.with(*[
-    \title->"trig",
-	\type->\t,
-	\array->Array.fill(~blockSize,{0}),
-	\buf->Buffer.alloc(s, ~blockSize)	
-]);
-)
-~seqArg = [~deg, ~drum];
 
-//////////set array to buffer//////////
-Buffer.freeAll //clear
 (
-~deg1Buf = Buffer.alloc(s, ~blockSize);
-~deg1Buf.setn(0, ~deg[\array]);
+~block.put(
+	\degree,
+	Dictionary.with(*[
+		\title->"degree",
+		\type->\s,
+		\array->Array.fill(~blockSize,{0}),
+		\buf->Buffer.alloc(s, ~blockSize),
+		\div->5,
+		\min->0,
+		\max->6,
+	]);
+);
 
-~dr1Buf = Buffer.alloc(s, ~blockSize);
-~dr1Buf.setn(0, ~drum[\array]);
+~block.put(
+	\trig,
+	Dictionary.with(*[
+		\title->"trig",
+		\type->\t,
+		\array->Array.fill(~blockSize,{0}),
+		\buf->Buffer.alloc(s, ~blockSize)
+	]);
+);
 )
 
 //////////execute sequencer//////////
+
+//set param to seq
+~seqArg = [~block[\degree], ~block[\trig]];
 ~seq.value(~seqArg);
 
 //////////start counter & playhead//////////
@@ -52,17 +62,25 @@ AppClock.play(~routine);
 )
 
 //////////buffer vale update//////////
+
+
+Buffer.freeAll //clear
+
 (
 ~bufUpdate = {
 	~deg1Buf.setn(0, ~deg[\array]);
 };
 )
 
-~deg[\buf].setn(0, ~deg[\array]);
-~deg[\buf].plot
+~block[\degree][\buf].setn(0, ~block[\degree][\array]);
+~block[\degree][\buf].plot
+
+~block[\trig][\buf].setn(0, ~block[\trig][\array]);
+~block[\trig][\buf].plot
 
 //////////synthDefs//////////
 
+//synthDess template
 //monosynth
 (
 SynthDef(\testBuf,{
@@ -97,23 +115,58 @@ var pe = (Env([1,1.2,0.9,1],[0.3,0.4,0.9]).discretize(16*4)).asArray;
 
 
 //////////export array to csv//////////
-~deg[\array].plot
+
+//export all files
 (
-// write a test file:
-f = File(PathName(thisProcess.nowExecutingPath).parentPath ++ "/arrays/deg.sc", "w");
-f.write("1,2,3,4,5");
-f.close;
+~block.keys.do({ |item, i|
+	//file setteings
+	var filename = ~block[item][\title];
+	var path = PathName(thisProcess.nowExecutingPath).parentPath +/+ "data";
+	var file = File(path +/+ filename ++ ".sc", "w");
+
+	//write params
+	//title
+	file.write(filename ++ "\n");
+	//type
+	file.write(~block[item][\type] ++ "\n");
+	//array
+	~block[item][\array].do({|i|
+		file.write(i.asString ++ ",");
+	});
+	file.write("\n");
+	//min
+	file.write(~block[item][\min].asString ++ "\n");
+	//max
+	file.write(~block[item][\max].asString ++ "\n");
+	//div
+	file.write(~block[item][\div].asString ++ "\n");
+	file.close;
+});
 )
 
+
+
+
 (
-p = PathName(thisProcess.nowExecutingPath).parentPath ++ "/arrays/deg.sc";
-x = CSVFileReader.readInterpret(p).postcs;
+p = PathName(thisProcess.nowExecutingPath).parentPath ++ "data/degree.sc";
+//x = CSVFileReader.readInterpret(p).postcs;
+x = CSVFileReader.read(p)[1].postcs;
 )
-x[0]
+
 
 
 //////////import array frim csv//////////
+//0:title, 1:type, 2:array, 3:min, 4:max, 5:div
 
+(
+var myPath, file;
+myPath = PathName(thisProcess.nowExecutingPath).parentPath ++ "data";
+myPath = PathName(myPath);
+file = myPath.entries[0].fullPath;
+x = CSVFileReader.read(file)[5][0].postcs;
+//p.entries[0]
+//p.entries[0].fileName.postln
+)
 
 
 
