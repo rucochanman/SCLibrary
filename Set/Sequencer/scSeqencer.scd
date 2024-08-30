@@ -1,4 +1,11 @@
 (
+//////////global//////////
+~bpm = 120;
+~step = 32;
+~bar = 4;
+~blockSize = ~step*~bar;
+~counter = 0;
+
 ~seq = {
 	//////////variables//////////
 	arg con;
@@ -7,7 +14,7 @@
 	//container
 	var win;
 	//num of step
-	var n=~step*~block;
+	var n=~step*~bar;
 
 	//////////create window//////////
 	win = Window("Sequencer",Rect(0, 0, //x,y
