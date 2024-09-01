@@ -1,7 +1,7 @@
 (
 //////////global//////////
 ~bpm = 120;
-~step = 32;
+~step = 64;
 ~bar = 4;
 ~blockSize = ~step*~bar;
 ~counter = 0;
@@ -13,8 +13,8 @@
 	var w=512, h=100, m=10, y=m*2;
 	//container
 	var win;
-	//num of step
-	var n=~step*~bar;
+	//blocksize
+	var n=~blockSize;
 
 	//////////create window//////////
 	win = Window("Sequencer",Rect(0, 0, //x,y
@@ -63,7 +63,7 @@
 			};
 			//display titles
 			StaticText(win,Rect(m*2, y-(m/2), w, h/2))
-			.string_(item[\title])
+			.string_(item[\name])
 			.font_(Font("ProFont for Powerline", 28))
 			.stringColor = c.alpha = 0.6;
 			//draw div line
@@ -88,7 +88,7 @@
 			.background_(Color(1,1,1,0.2));
 			//display titles
 			StaticText(win,Rect(m*2, y-(m/2), w, h/2))
-			.string_(item[\title])
+			.string_(item[\name])
 			.font_(Font("ProFont for Powerline", 28))
 			.stringColor = c;
 			//create trigs
@@ -162,4 +162,7 @@ SynthDef(\counter,{
         0.1.wait;
     })
 });
+
+//////////make block array//////////
+(~block.isNil).if{~block = Dictionary()};
 )
