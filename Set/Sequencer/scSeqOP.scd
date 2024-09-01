@@ -4,56 +4,64 @@ s.boot;
 //////////load seqMain//////////
 (
 //absolute path to scSequecer.scd
-var path = "***/SCTools/SCLibrary/Set/Sequencer/scSeqencer.scd";
+var path = "Users/***/Desktop/SCTools/Set/Sequencer/scSeqencer.scd";
 load(path);
 )
 
 //////////song setting//////////
-(
 ~bpm = 120;
-~step = 32;
-~bar = 4;
-~blockSize = ~step*~bar;
-~counter = 0;
-)
 
 //////////make new parameter//////////
-~block = Dictionary();
-
-//template
-//title, type(\t or \s), array ←mandatory!!
-//min, max, div
 
 (
-~block.put(
-	\degree,
-	Dictionary.with(*[
-		\title->"degree",
-		\type->\s,
-		\array->Array.fill(~blockSize,{0}),
-		\buf->Buffer.alloc(s, ~blockSize),
-		\div->5,
-		\min->0,
-		\max->6,
-	]);
-);
+~param = { arg
+	//////////set param//////////
+	name = \name_size,
+	type = \s, // \s(slider) or \t(trig)
+	bar = 4,  //bar size
+	//////////optional//////////
+	div = 0,
+	min = 0.0,
+	max = 1.0;
 
-~block.put(
-	\trig,
-	Dictionary.with(*[
-		\title->"trig",
-		\type->\t,
-		\array->Array.fill(~blockSize,{0}),
-		\buf->Buffer.alloc(s, ~blockSize)
+	//////////make dict//////////
+	var block;
+	block = Dictionary.with(*[
+		\name -> name,
+		\type -> type,
+		\bar -> bar,
+		\array -> Array.fill(~step*bar, {0}),
+		\buf -> Buffer.alloc(s, ~step*bar),
+		\div -> div,
+		\min -> min,
+		\max -> max,
 	]);
-);
+
+	//////////add to block array
+	~block.put(name, block);
+};
 )
 
-//////////execute sequencer//////////
+//add blank block
+~param.value(\test_4bar, \s, 4, 0, 0, 1);
 
+//save to file
+~save.value;
+
+
+//////////execute sequencer//////////
+(
 //set param to seq
-~seqArg = [~block[\degree], ~block[\trig]];
-~seq.value(~seqArg);
+~setBlock = [~block[\test_4bar]];
+
+//size setting
+~bar = 4;
+~blockSize = ~step*~bar;
+
+//execute
+~seq.value(~setBlock);
+)
+
 
 //////////start counter & playhead//////////
 (
@@ -61,22 +69,29 @@ Synth(\counter);
 AppClock.play(~routine);
 )
 
-//////////buffer vale update//////////
-
-
-Buffer.freeAll //clear
+//////////buffer update while running//////////
 
 (
 ~bufUpdate = {
-	~deg1Buf.setn(0, ~deg[\array]);
+	~setBlock.do({ |item|
+		item[\buf].setn(0, item[\array]);
+	});
 };
 )
 
-~block[\degree][\buf].setn(0, ~block[\degree][\array]);
-~block[\degree][\buf].plot
+~block[\test_4bar][\buf].setn(0, ~block[\test_4bar][\array]);
+~block[\test_4bar][\buf].plot
 
-~block[\trig][\buf].setn(0, ~block[\trig][\array]);
-~block[\trig][\buf].plot
+//////////buffer update once//////////
+
+(
+~bufUpdate1 = { |item|
+	item[\buf].setn(0, item[\array]);
+};
+)
+
+
+Buffer.freeAll //clear
 
 //////////synthDefs//////////
 
@@ -85,6 +100,7 @@ Buffer.freeAll //clear
 (
 SynthDef(\testBuf,{
 	var bufnum = \bufnum.kr(0);
+	//setting block size mod
 	var freq = BufRd.kr(1, bufnum, In.kr(~cBus,1));
 	var sn = Saw.ar((freq * 100)+100, 0.1);
 	Out.ar(0, sn);
@@ -96,6 +112,7 @@ Synth(\testBuf, [\bufnum, ~deg1Buf])
 //trigsynth
 (
 SynthDef(\testTrig, {
+	//setting block size mod
 	var gate = BufRd.kr(1, \bufnum.kr(0), In.kr(~cBus,1));
 	var sn = WhiteNoise.ar(0.1);
 	var env = EnvGen.kr(Env.perc, gate);
@@ -116,56 +133,74 @@ var pe = (Env([1,1.2,0.9,1],[0.3,0.4,0.9]).discretize(16*4)).asArray;
 
 //////////export array to csv//////////
 
-//export all files
+//save all blocks
+//name, type, step, bar, div, min, max, array
 (
-~block.keys.do({ |item, i|
-	//file setteings
-	var filename = ~block[item][\title];
-	var path = PathName(thisProcess.nowExecutingPath).parentPath +/+ "data";
-	var file = File(path +/+ filename ++ ".sc", "w");
+~save = {
+	~block.keys.do({ |item, i|
+		//file setteings
+		var filename = ~block[item][\title];
+		var path = PathName(thisProcess.nowExecutingPath).parentPath +/+ "data";
+		var file = File(path +/+ filename ++ ".sc", "w");
 
-	//write params
-	//title
-	file.write(filename ++ "\n");
-	//type
-	file.write(~block[item][\type] ++ "\n");
-	//array
-	~block[item][\array].do({|i|
-		file.write(i.asString ++ ",");
+		//write params
+		//title
+		file.write(filename ++ "\n");
+		//type
+		file.write(~block[item][\type] ++ "\n");
+		//bar
+		file.write(~block[item][\bar].asString ++ "\n");
+		//div
+		file.write(~block[item][\div].asString ++ "\n");
+		//min
+		file.write(~block[item][\min].asString ++ "\n");
+		//max
+		file.write(~block[item][\max].asString ++ "\n");
+		//array
+		~block[item][\array].do({|i|
+			file.write(i.asString ++ ",");
+		});
+		file.write("\n");
+
+		//file close
+		file.close;
 	});
-	file.write("\n");
-	//min
-	file.write(~block[item][\min].asString ++ "\n");
-	//max
-	file.write(~block[item][\max].asString ++ "\n");
-	//div
-	file.write(~block[item][\div].asString ++ "\n");
-	file.close;
-});
+};
 )
 
-
-
-
-(
-p = PathName(thisProcess.nowExecutingPath).parentPath ++ "data/degree.sc";
-//x = CSVFileReader.readInterpret(p).postcs;
-x = CSVFileReader.read(p)[1].postcs;
-)
-
+~save.value;
 
 
 //////////import array frim csv//////////
-//0:title, 1:type, 2:array, 3:min, 4:max, 5:div
+//name, type, step, bar, div, min, max, array
 
 (
-var myPath, file;
-myPath = PathName(thisProcess.nowExecutingPath).parentPath ++ "data";
-myPath = PathName(myPath);
-file = myPath.entries[0].fullPath;
-x = CSVFileReader.read(file)[5][0].postcs;
-//p.entries[0]
-//p.entries[0].fileName.postln
+var path, file;
+path = PathName(thisProcess.nowExecutingPath).parentPath ++ "data";
+path = PathName(path);
+path.entries.do({|item|
+	var title = CSVFileReader.read(item.fullPath)[0][0].asString;
+	var type = CSVFileReader.read(item.fullPath)[1][0].asString;
+	var step = CSVFileReader.read(item.fullPath)[2][0].asInteger;
+	var bar = CSVFileReader.read(item.fullPath)[3][0].asInteger;
+	var div = CSVFileReader.read(item.fullPath)[4][0].asInteger;
+	var min = CSVFileReader.read(item.fullPath)[5][0].asInteger;
+	var max = CSVFileReader.read(item.fullPath)[6][0].asInteger;
+	var array = CSVFileReader.read(item.fullPath)[7];
+	~param.value(title, type, step, bar, div, min, max, array);
+});
+)
+
+~block[\piano]
+~param.value("piano", "s", 32, 4);
+
+(
+var path, file;
+path = PathName(thisProcess.nowExecutingPath).parentPath ++ "data";
+path = PathName(path);
+p = path.entries[0];
+//x = CSVFileReader.readInterpret(p.fullPath)[6];
+x = CSVFileReader.read(p.fullPath)[2][0].asInteger;
 )
 
 
@@ -177,7 +212,8 @@ x = CSVFileReader.read(file)[5][0].postcs;
 
 
 
-//wavetable作成
+
+//////////wavetable作成
 ~wt1Buf = Buffer.alloc(s, 1024*2);
 
 //更新
