@@ -4,7 +4,7 @@ s.boot;
 //////////load seqMain//////////
 (
 //absolute path to scSequecer.scd
-var path = "Users/***/Desktop/SCTools/Set/Sequencer/scSeqencer.scd";
+var path = "Users/ruco/Desktop/SCTools/Set/Sequencer/scSeqencer.scd";
 load(path);
 )
 
@@ -22,7 +22,8 @@ load(path);
 	//////////optional//////////
 	div = 0,
 	min = 0.0,
-	max = 1.0;
+	max = 1.0,
+	array = Array.fill(~step*bar, {0});
 
 	//////////make dict//////////
 	var block;
@@ -30,11 +31,11 @@ load(path);
 		\name -> name,
 		\type -> type,
 		\bar -> bar,
-		\array -> Array.fill(~step*bar, {0}),
-		\buf -> Buffer.alloc(s, ~step*bar),
 		\div -> div,
 		\min -> min,
 		\max -> max,
+		\array -> array,
+		\buf -> Buffer.alloc(s, ~step*bar)
 	]);
 
 	//////////add to block array
@@ -46,7 +47,7 @@ load(path);
 ~param.value(\test_4bar, \s, 4, 0, 0, 1);
 
 //save to file
-~save.value;
+~save.value(~block);
 
 
 //////////execute sequencer//////////
@@ -65,6 +66,7 @@ load(path);
 
 //////////start counter & playhead//////////
 (
+~counter = 0;
 Synth(\counter);
 AppClock.play(~routine);
 )
@@ -124,22 +126,15 @@ SynthDef(\testTrig, {
 
 
 
-//波形表示ブロックを作成？
-
-
-var de = (Env([0,0.2,0.28,0.99],[0.3,0.4,0.9]).discretize(16*4)).asArray;
-var pe = (Env([1,1.2,0.9,1],[0.3,0.4,0.9]).discretize(16*4)).asArray;
-
-
 //////////export array to csv//////////
 
 //save all blocks
 //name, type, step, bar, div, min, max, array
 (
-~save = {
-	~block.keys.do({ |item, i|
+~save = { |block|
+	block.keys.do({ |item|
 		//file setteings
-		var filename = ~block[item][\title];
+		var filename = ~block[item][\name];
 		var path = PathName(thisProcess.nowExecutingPath).parentPath +/+ "data";
 		var file = File(path +/+ filename ++ ".sc", "w");
 
@@ -147,18 +142,21 @@ var pe = (Env([1,1.2,0.9,1],[0.3,0.4,0.9]).discretize(16*4)).asArray;
 		//title
 		file.write(filename ++ "\n");
 		//type
-		file.write(~block[item][\type] ++ "\n");
+		file.write(block[item][\type] ++ "\n");
 		//bar
-		file.write(~block[item][\bar].asString ++ "\n");
+		file.write(block[item][\bar].asString ++ "\n");
 		//div
-		file.write(~block[item][\div].asString ++ "\n");
+		file.write(block[item][\div].asString ++ "\n");
 		//min
-		file.write(~block[item][\min].asString ++ "\n");
+		file.write(block[item][\min].asString ++ "\n");
 		//max
-		file.write(~block[item][\max].asString ++ "\n");
+		file.write(block[item][\max].asString ++ "\n");
 		//array
-		~block[item][\array].do({|i|
-			file.write(i.asString ++ ",");
+		block[item][\array].do({|n, i|
+			file.write(n.asString);
+			(i < (block[item][\array].size-1)).if{
+				file.write(",");
+			};
 		});
 		file.write("\n");
 
@@ -168,40 +166,30 @@ var pe = (Env([1,1.2,0.9,1],[0.3,0.4,0.9]).discretize(16*4)).asArray;
 };
 )
 
-~save.value;
 
 
-//////////import array frim csv//////////
-//name, type, step, bar, div, min, max, array
 
+//////////import array from csv//////////
 (
 var path, file;
 path = PathName(thisProcess.nowExecutingPath).parentPath ++ "data";
 path = PathName(path);
 path.entries.do({|item|
-	var title = CSVFileReader.read(item.fullPath)[0][0].asString;
-	var type = CSVFileReader.read(item.fullPath)[1][0].asString;
-	var step = CSVFileReader.read(item.fullPath)[2][0].asInteger;
-	var bar = CSVFileReader.read(item.fullPath)[3][0].asInteger;
-	var div = CSVFileReader.read(item.fullPath)[4][0].asInteger;
-	var min = CSVFileReader.read(item.fullPath)[5][0].asInteger;
-	var max = CSVFileReader.read(item.fullPath)[6][0].asInteger;
-	var array = CSVFileReader.read(item.fullPath)[7];
-	~param.value(title, type, step, bar, div, min, max, array);
+	var name = CSVFileReader.read(item.fullPath)[0][0].asSymbol;
+	var type = CSVFileReader.read(item.fullPath)[1][0].asSymbol;
+	var bar = CSVFileReader.read(item.fullPath)[2][0].asInteger;
+	var div = CSVFileReader.read(item.fullPath)[3][0].asInteger;
+	var min = CSVFileReader.read(item.fullPath)[4][0].asFloat;
+	var max = CSVFileReader.read(item.fullPath)[5][0].asFloat;
+	var array = CSVFileReader.readInterpret(
+		item.fullPath,true,true,startRow:6)[0];
+	~param.value(name, type, bar, div, min, max, array);
 });
+
+~block.do({|item| ~bufUpdate1.value(item)});
 )
 
-~block[\piano]
-~param.value("piano", "s", 32, 4);
 
-(
-var path, file;
-path = PathName(thisProcess.nowExecutingPath).parentPath ++ "data";
-path = PathName(path);
-p = path.entries[0];
-//x = CSVFileReader.readInterpret(p.fullPath)[6];
-x = CSVFileReader.read(p.fullPath)[2][0].asInteger;
-)
 
 
 
