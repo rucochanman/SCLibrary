@@ -165,4 +165,75 @@ SynthDef(\counter,{
 
 //////////make block array//////////
 (~block.isNil).if{~block = Dictionary()};
+
+//////////make new parameter//////////
+~param = { arg
+	//////////set param//////////
+	name = \name_size,
+	type = \s, // \s(slider) or \t(trig)
+	bar = 4,  //bar size
+	//////////optional//////////
+	div = 0,
+	min = 0.0,
+	max = 1.0,
+	array = Array.fill(~step*bar, {0});
+
+	//////////make dict//////////
+	var block;
+	block = Dictionary.with(*[
+		\name -> name,
+		\type -> type,
+		\bar -> bar,
+		\div -> div,
+		\min -> min,
+		\max -> max,
+		\array -> array,
+		\buf -> Buffer.alloc(s, ~step*bar)
+	]);
+
+	//////////add to block array
+	~block.put(name, block);
+};
+
+//////////buffer update while running//////////
+~bufUpdate = {
+	~setBlock.do({ |item|
+		item[\buf].setn(0, item[\array]);
+	});
+};
+
+//////////buffer update once//////////
+~bufUpdate1 = { |item|
+	item[\buf].setn(0, item[\array]);
+};
+
+//////////export array to csv//////////
+~save = { |block|
+	block.keys.do({ |item|
+		//file setteings
+		var filename = ~block[item][\name];
+		var path = PathName(thisProcess.nowExecutingPath).parentPath +/+ "data";
+		var file = File(path +/+ filename ++ ".sc", "w");
+
+		//write params
+		file.write(filename ++ "\n"); //title
+		file.write(block[item][\type] ++ "\n"); //type
+		file.write(block[item][\bar].asString ++ "\n"); //bar
+		file.write(block[item][\div].asString ++ "\n"); //div
+		file.write(block[item][\min].asString ++ "\n"); //min
+		file.write(block[item][\max].asString ++ "\n"); //max
+		//array
+		block[item][\array].do({|n, i|
+			file.write(n.asString);
+			(i < (block[item][\array].size-1)).if{
+				file.write(",");
+			};
+		});
+		file.write("\n");
+
+		//file close
+		file.close;
+	});
+};
+
 )
