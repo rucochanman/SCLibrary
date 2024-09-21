@@ -1,8 +1,8 @@
 (
 //////////global//////////
-~bpm = 120;
-~step = 64;
-~bar = 4;
+(~bpm.isNil).if{~bpm = 120};
+(~step.isNil).if{~step = 64};
+(~bar.isNil).if{~bar = 4};
 ~blockSize = ~step*~bar;
 ~counter = 0;
 
